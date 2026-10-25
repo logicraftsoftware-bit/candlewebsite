@@ -1,0 +1,50 @@
+import { test, expect } from '@playwright/test';
+test('catalog search, filters, wishlist, cart persistence and checkout preview',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('/');
+ await expect(page.getByRole('heading',{name:'Make room for a little glow.'})).toBeVisible();
+ await page.getByRole('button',{name:'Search candles',exact:true}).click();
+ await page.getByRole('textbox',{name:'Search by scent or name'}).fill('vanilla');
+ await page.getByRole('button',{name:'Search',exact:true}).click();
+ await expect(page.locator('.product-card')).toHaveCount(2);
+ await page.getByRole('button',{name:'Clear search'}).click();
+ await page.getByRole('button',{name:'Floral & Soft',exact:true}).click();
+ await expect(page.locator('.product-card')).toHaveCount(2);
+ await page.getByRole('button',{name:'Save Lavender Haze to wishlist'}).click();
+ await page.goto('/#/wishlist');
+ await expect(page.locator('.product-card')).toHaveCount(1);
+ await page.getByRole('link',{name:'Lavender Haze',exact:true}).click();
+ await page.getByRole('button',{name:'Increase Quantity'}).click();
+ await page.locator('.detail-copy').getByRole('button',{name:'Add to bag',exact:true}).click();
+ await page.goto('/#/cart');
+ await expect(page.locator('.order-total')).toContainText('1,598');
+ await page.reload();
+ await expect(page.locator('.quantity')).toContainText('2');
+ await page.getByRole('button',{name:'Increase Lavender Haze'}).click();
+ await expect(page.locator('.order-total')).toContainText('2,397');
+ await page.getByRole('link',{name:'Continue to checkout'}).click();
+ await expect(page.getByText('This is a storefront preview.')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Payments opening soon'})).toBeDisabled();
+ await page.goto('/#/cart');
+ await page.getByRole('button',{name:'Remove Lavender Haze'}).click();
+ await expect(page.getByRole('heading',{name:'A little glow belongs here.'})).toBeVisible();
+ expect(errors).toEqual([]);
+});
+test('mobile navigation, product images and page routes',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/');
+ await page.getByRole('button',{name:'Toggle navigation'}).click();
+ await page.getByRole('navigation').getByRole('link',{name:'Shop candles'}).click();
+ await expect(page.locator('.product-card')).toHaveCount(6);
+ await page.evaluate(async()=>{await Promise.all([...document.images].map(img=>img.decode().catch(()=>{})));});
+ expect(await page.locator('.product-card img').evaluateAll(images=>images.every(img=>img.complete&&img.naturalWidth>0))).toBe(true);
+ for(const path of ['our-story','candle-care','faq','contact','policies','missing']){
+  await page.goto('/#/'+path);
+  await expect(page.locator('main h1')).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+ }
+ await page.goto('/');
+ await page.screenshot({path:'test-results/home-mobile.png',fullPage:true});
+ await page.setViewportSize({width:1440,height:1000});
+ await page.screenshot({path:'test-results/home-desktop.png',fullPage:true});
+});
