@@ -1,4 +1,4 @@
-# Wick & Glow candle storefront
+# Glow Petals candle storefront
 
 A responsive React storefront replacing the original yoga HTML template. Uses React 19, React Router, Vite, and Lucide icons. Branding and products are provisional until the business provides its real catalog.
 
